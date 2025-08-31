@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta author="kimheng">
+    <title>QR Code Generator</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 28rem;
+            animation: popIn 0.5s ease-out forwards;
+        }
+
+        #downloadLink {
+            display: none;
+            text-align: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            background-color: #4f46e5;
+            color: white;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.2s, transform 0.2s, opacity 0.2s;
+            margin-top: 1rem;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        #downloadLink:hover {
+            background-color: #4338ca;
+            transform: translateY(10px) scale(1.05);
+        }
+
+        #qrCodeCanvas {
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+
+        .animated-qr-code {
+            opacity: 1 !important;
+            transform: scale(1) !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="container bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center">
+        <!-- Application Title -->
+        <h1 class="text-3xl font-bold text-gray-800 mb-4 animate-fadeIn">QR Code Generator</h1>
+        <p class="text-gray-500 mb-6 text-center animate-fadeIn" style="animation-delay: 0.1s;">Enter a URL below and get your QR code instantly.</p>
+
+        <!-- Input field and generate button -->
+        <div class="w-full flex flex-col sm:flex-row gap-4 mb-6">
+            <input type="url" id="urlInput" placeholder="https://example.com" class="flex-grow px-4 py-2 text-gray-700 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200">
+            <button id="generateBtn" class="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 active:scale-95 transition duration-200">
+                Generate
+            </button>
+        </div>
+
+        <!-- QR Code Display Area -->
+        <div id="qrCodeContainer" class="w-full h-auto flex justify-center items-center p-4 rounded-lg bg-gray-50 border border-gray-200 min-h-[250px] mb-4">
+            <canvas id="qrCodeCanvas" class="w-full h-full max-w-xs"></canvas>
+            <p id="message" class="text-gray-400 text-center">Your QR code will appear here.</p>
+        </div>
+        
+        <!-- Download Link -->
+        <a id="downloadLink" href="#" download="qr-code.png">Download QR Code</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlInput = document.getElementById('urlInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const qrCodeCanvas = document.getElementById('qrCodeCanvas');
+            const messageEl = document.getElementById('message');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            // Function to generate and display the QR code
+            const generateQRCode = (text) => {
+                // Hide and reset canvas animation state before drawing
+                qrCodeCanvas.classList.remove('animated-qr-code');
+
+                if (!text) {
+                    messageEl.textContent = 'Please enter a URL.';
+                    messageEl.style.display = 'block';
+                    qrCodeCanvas.style.display = 'none';
+                    downloadLink.style.display = 'none';
+                    return;
+                }
+
+                messageEl.style.display = 'none';
+                qrCodeCanvas.style.display = 'block';
+
+                const typeNumber = 4;
+                const errorCorrectionLevel = 'M';
+                
+                const qr = qrcode(typeNumber, errorCorrectionLevel);
+                
+                qr.addData(text);
+                qr.make();
+                
+                const ctx = qrCodeCanvas.getContext('2d');
+                
+                // Increased the canvas size to improve clarity and reduce blurriness.
+                const size = 512;
+                const moduleSize = size / qr.getModuleCount();
+                qrCodeCanvas.width = qrCodeCanvas.height = size;
+                
+                ctx.clearRect(0, 0, size, size);
+                
+                for (let row = 0; row < qr.getModuleCount(); row++) {
+                    for (let col = 0; col < qr.getModuleCount(); col++) {
+                        if (qr.isDark(row, col)) {
+                            ctx.fillStyle = '#1f2937';
+                        } else {
+                            ctx.fillStyle = '#ffffff';
+                        }
+                        ctx.fillRect(col * moduleSize, row * moduleSize, moduleSize, moduleSize);
+                    }
+                }
+                
+                // Trigger the animation for the canvas
+                setTimeout(() => {
+                    qrCodeCanvas.classList.add('animated-qr-code');
+                }, 50);
+
+                // Make the download link visible and trigger its fade-in animation
+                downloadLink.style.display = 'inline-block';
+                downloadLink.href = qrCodeCanvas.toDataURL('image/png');
+                setTimeout(() => {
+                    downloadLink.style.opacity = '1';
+                    downloadLink.style.transform = 'translateY(0)';
+                }, 100);
+            };
+
+            // Initial state: show message
+            generateQRCode('');
+
+            // Event listener for the button click
+            generateBtn.addEventListener('click', () => {
+                const url = urlInput.value;
+                generateQRCode(url);
+            });
+
+            // Optional: Generate QR code on input change (for real-time feedback)
+            urlInput.addEventListener('input', (event) => {
+                generateQRCode(event.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
